@@ -1,18 +1,26 @@
 <?xml version='1.0'?>
-
 <robot name="robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:property name="camera_width" value="0.02"/>
   <xacro:property name="camera_length" value="0.02"/>
   <xacro:property name="camera_height" value="0.01"/>
   <xacro:property name="camera_mass" value="0.01"/>
+  <xacro:property name="LiDAR_mass" value="0.01"/>
+  
+  <xacro:property name="mast_height" value="0.125"/>
+  <xacro:property name="mast_mass" value="0.02"/>
+
   <xacro:property name="chassis_width" value="0.15"/>
   <xacro:property name="chassis_length" value="0.2"/>
   <xacro:property name="chassis_height" value="0.05"/>
   <xacro:property name="chassis_mass" value="0.5"/>
+  
   <xacro:property name="wheel_radius" value="0.04"/>
   <xacro:property name="wheel_width" value="0.03"/>
   <xacro:property name="wheel_mass" value="0.025"/>
+  
+  <xacro:property name="camera_fov_deg" value="100"/>
+  <xacro:property name="pi" value="3.1415926535897931"/>
 
   <xacro:include filename="$(find robbie)/urdf/macros.xacro"/>
   <xacro:include filename="$(find robbie)/urdf/materials.xacro"/>
@@ -35,68 +43,42 @@
     </visual>
   </link>
 
-  <link name='wheel_FR'>
-    <xacro:cylinder_inertial name="wheel_FR" m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
-    <collision name='wheel_FR_collision'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>    
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </collision>
-    <visual name='wheel_FR_visual'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </visual>
-  </link>
+  <xacro:macro name="wheel_link" params="name">
+    <link name='${name}'>
+      <xacro:cylinder_inertial name="${name}" m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+      <collision name='${name}_collision'>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>    
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      <visual name='${name}_visual'>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
 
-  <link name='wheel_FL'>
-    <xacro:cylinder_inertial name="wheel_FL" m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
-    <collision name='wheel_FL_collision'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>    
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </collision>
-    <visual name='wheel_FL_visual'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </visual>
-  </link>
+  <xacro:wheel_link name="wheel_FR"/>
+  <xacro:wheel_link name="wheel_FL"/>
+  <xacro:wheel_link name="wheel_RR"/>
+  <xacro:wheel_link name="wheel_RL"/>
 
-  <link name='wheel_RR'>
-    <xacro:cylinder_inertial name="wheel_RR" m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
-    <collision name='wheel_RR_collision'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>    
+  <link name='camera_mast'>
+    <xacro:box_inertial name="camera_mast" m="${mast_mass}" x="0.02" y="0.02" z="${mast_height}"/>
+    <visual>
       <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        <box size="0.02 0.02 ${mast_height}"/> 
+      </geometry>
+      <material name="Gray"><color rgba="0.5 0.5 0.5 1.0"/></material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.02 0.02 ${mast_height}"/>
       </geometry>
     </collision>
-    <visual name='wheel_RR_visual'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </visual>
-  </link>
-
-  <link name='wheel_RL'>
-    <xacro:cylinder_inertial name="wheel_RL" m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
-    <collision name='wheel_RL_collision'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>    
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </collision>
-    <visual name='wheel_RL_visual'>
-      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
-      <geometry>
-        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
-      </geometry>
-    </visual>
   </link>
 
   <link name='camera_link'>
@@ -114,67 +96,83 @@
     </visual>
   </link>
 
+  <link name="hokuyo_link">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.03 0.03 0.03"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.015" length="0.03"/>
+      </geometry>
+      <material name="Black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="${LiDAR_mass}" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <joint name="hokuyo_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="${chassis_length/2} 0 0" rpy="0 0 0"/>
+    <parent link="chassis"/>
+    <child link="hokuyo_link"/>
+  </joint>
+
   <joint name="wheel_FR_joint" type="continuous">
     <parent link="chassis"/>
     <child link="wheel_FR"/>
-    <origin xyz="${chassis_length/2-wheel_radius} -${chassis_width/2+wheel_width/2} 0"
-            rpy="0 0 0"/>
+    <origin xyz="${chassis_length/2-wheel_radius} -${chassis_width/2+wheel_width/2} 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <joint name="wheel_FL_joint" type="continuous">
     <parent link="chassis"/>
     <child link="wheel_FL"/>
-    <origin xyz="${chassis_length/2-wheel_radius} ${chassis_width/2+wheel_width/2} 0"
-            rpy="0 0 0"/>
+    <origin xyz="${chassis_length/2-wheel_radius} ${chassis_width/2+wheel_width/2} 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <joint name="wheel_RR_joint" type="continuous">
     <parent link="chassis"/>
     <child link="wheel_RR"/>
-    <origin xyz="-${chassis_length/2-wheel_radius} -${chassis_width/2+wheel_width/2} 0"
-            rpy="0 0 0"/>
+    <origin xyz="-${chassis_length/2-wheel_radius} -${chassis_width/2+wheel_width/2} 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <joint name="wheel_RL_joint" type="continuous">
     <parent link="chassis"/>
     <child link="wheel_RL"/>
-    <origin xyz="-${chassis_length/2-wheel_radius} ${chassis_width/2+wheel_width/2} 0"
-            rpy="0 0 0"/>
+    <origin xyz="-${chassis_length/2-wheel_radius} ${chassis_width/2+wheel_width/2} 0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
   </joint>
 
-  <joint name="camera_joint" type="fixed">
+  <joint name="chassis_to_mast_joint" type="fixed">
     <parent link="chassis"/>
-    <child link="camera_link"/>
-    <origin xyz="${chassis_length/2} 0 ${chassis_height/2+camera_height/2}"/>
+    <child link="camera_mast"/>
+    <origin xyz="${chassis_length/2 - 0.01} 0 ${chassis_height/2 + mast_height/2}" rpy="0 0 0"/>
   </joint>
 
-  <gazebo reference="chassis">
-    <material>Gazebo/Orange</material>
-  </gazebo>
+  <joint name="camera_joint" type="fixed">
+    <parent link="camera_mast"/>
+    <child link="camera_link"/>
+    <origin xyz="0.02 0 ${mast_height/2}" rpy="0 0.17 0"/>
+  </joint>
 
-  <gazebo reference="camera_link">
-    <material>Gazebo/Blue</material>
-  </gazebo>
-
-  <gazebo reference="wheel_FL">
-    <material>Gazebo/Yellow</material>
-  </gazebo>
-
-  <gazebo reference="wheel_FR">
-    <material>Gazebo/Yellow</material>
-  </gazebo>
-
-  <gazebo reference="wheel_RL">
-    <material>Gazebo/Yellow</material>
-  </gazebo>
-
-  <gazebo reference="wheel_RR">
-    <material>Gazebo/Yellow</material>
-  </gazebo>
+  <gazebo reference="chassis"><material>Gazebo/Orange</material></gazebo>
+  <gazebo reference="camera_link"><material>Gazebo/Blue</material></gazebo>
+  <gazebo reference="camera_mast"><material>Gazebo/Grey</material></gazebo>
+  <gazebo reference="wheel_FL"><material>Gazebo/Yellow</material></gazebo>
+  <gazebo reference="wheel_FR"><material>Gazebo/Yellow</material></gazebo>
+  <gazebo reference="wheel_RL"><material>Gazebo/Yellow</material></gazebo>
+  <gazebo reference="wheel_RR"><material>Gazebo/Yellow</material></gazebo>
 
   <gazebo>
     <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
@@ -185,10 +183,10 @@
       <rightRearJoint>wheel_RR_joint</rightRearJoint>
       <wheelSeparation>0.4</wheelSeparation>
       <wheelDiameter>0.215</wheelDiameter>
-      <robotBaseFrame>base_link</robotBaseFrame>
+      <robotBaseFrame>chassis</robotBaseFrame>
       <torque>20</torque>
       <topicName>cmd_vel</topicName>
-      <broadcastTF>false</broadcastTF>
+      <broadcastTF>true</broadcastTF>
     </plugin>
   </gazebo>
 
@@ -196,7 +194,7 @@
     <sensor type="camera" name="camera1">
       <update_rate>30.0</update_rate>
       <camera name="head">
-        <horizontal_fov>1.3962634</horizontal_fov>
+        <horizontal_fov>${camera_fov_deg * pi / 180}</horizontal_fov>
         <image>
           <width>800</width>
           <height>800</height>
@@ -208,9 +206,6 @@
         </clip>
         <noise>
           <type>gaussian</type>
-          <!-- Noise is sampled independently per pixel on each frame.
-              That pixel's noise value is added to each of its color
-              channels, which at that point lie in the range [0,1]. -->
           <mean>0.0</mean>
           <stddev>0.007</stddev>
         </noise>
@@ -223,14 +218,41 @@
         <cameraInfoTopicName>camera_info</cameraInfoTopicName>
         <frameName>camera_link</frameName>
         <hackBaseline>0.07</hackBaseline>
-        <distortionK1>0.0</distortionK1>
-        <distortionK2>0.0</distortionK2>
-        <distortionK3>0.0</distortionK3>
-        <distortionT1>0.0</distortionT1>
-        <distortionT2>0.0</distortionT2>
       </plugin>
     </sensor>
   </gazebo>
 
+  <gazebo reference="hokuyo_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="hokuyo_link">
+    <sensor type="ray" name="head_hokuyo_sensor">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize> <update_rate>40</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-1.570796</min_angle> <max_angle>1.570796</max_angle>  </horizontal>
+        </scan>
+        <range>
+          <min>0.10</min>
+          <far>10.0</far>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+        <topicName>/scan</topicName>
+        <frameName>hokuyo_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
 
 </robot>
