@@ -11,6 +11,26 @@ import string
 from random import randint
 from PIL import Image, ImageFont, ImageDraw
 
+def generate_random_text():
+    length = random.randint(3, 11)
+
+    text = ""
+    for _ in range(length):
+        if random.random() < 0.15:
+            text += " "
+        else:
+            text += random.choice(string.ascii_uppercase + string.digits)
+
+    return text.strip()
+
+def generate_random_clue():
+    keys = ["SIZE", "VICTIM", "CRIME", "TIME", "PLACE", "MOTIVE", "WEAPON", "BANDIT"]
+    clues = {}
+
+    for key in keys:
+        clues[key] = generate_random_text()
+
+    return clues
 
 def loadCrimesProfileCompetition():
     '''
@@ -56,6 +76,7 @@ PLATE_WIDTH = banner_canvas.shape[1]
 IMG_DEPTH = 3
 
 clues = loadCrimesProfileCompetition()
+#clues = generate_random_clue()
 
 i = 0
 for key, value in clues.items():
